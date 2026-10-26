@@ -132,7 +132,21 @@ class ApiClient {
       return json;
     }
 
-    throw const NetworkFailure();
+    throw _mapHttpError(code, json);
+  }
+
+  Failure _mapHttpError(int statusCode, dynamic json) {
+    switch (statusCode) {
+      case 404:
+        return const NotFoundFailure();
+      case 409:
+        final message = (json is Map && json['detail'] is String)
+            ? json['detail'] as String
+            : 'Conflicto en la operación';
+        return ConflictFailure(message);
+      default:
+        return const NetworkFailure();
+    }
   }
 
   Uri _buildUri(String path, Map<String, dynamic>? queryParameters) {
