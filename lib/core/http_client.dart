@@ -135,6 +135,9 @@ class ApiClient {
     throw _mapHttpError(code, json);
   }
 
+  Failure mapHttpError(int statusCode, dynamic json) =>
+      _mapHttpError(statusCode, json);
+
   Failure _mapHttpError(int statusCode, dynamic json) {
     switch (statusCode) {
       case 404:
@@ -144,8 +147,15 @@ class ApiClient {
             ? json['detail'] as String
             : 'Conflicto en la operación';
         return ConflictFailure(message);
+      case 422:
+        return UnprocessableEntityFailure(_fieldsFrom(json));
+      case >= 500 && < 600:
+        return ServerFailure(statusCode);
       default:
-        return const NetworkFailure();
+        final message = (json is Map && json['detail'] is String)
+            ? json['detail'] as String
+            : 'Error inesperado del servidor';
+        return UnexpectedFailure(statusCode, message);
     }
   }
 
@@ -170,5 +180,20 @@ class ApiClient {
     } on FormatException {
       return null;
     }
+  }
+
+  Map<String, String> _fieldsFrom(Object? json) {
+    final fields = <String, String>{};
+    if (json is Map && json['detail'] is List) {
+      for (final error in json['detail']) {
+        if (error is Map && error['loc'] is List && error['msg'] is String) {
+          final loc = error['loc'] as List;
+          if (loc.isNotEmpty) {
+            fields[loc.last.toString()] = error['msg'] as String;
+          }
+        }
+      }
+    }
+    return fields;
   }
 }
