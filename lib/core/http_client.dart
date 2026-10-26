@@ -128,7 +128,7 @@ class ApiClient {
     final json = _tryDecode(response);
     final code = response.statusCode;
 
-    if (code >= 200 && code <= 300) {
+    if (code >= 200 && code < 300) {
       return json;
     }
 
